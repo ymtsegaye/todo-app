@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -151,7 +152,6 @@
             border-radius: 8px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
             transition: all 0.3s;
             border-left: 4px solid transparent;
             position: relative;
@@ -257,6 +257,45 @@
             font-size: 16px;
             padding: 5px;
             border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .task-text:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        /* NEW: Expand/collapse indicator */
+        .expand-indicator {
+            font-size: 12px;
+            color: #999;
+            transition: transform 0.3s;
+        }
+        
+        .expand-indicator.expanded {
+            transform: rotate(90deg);
+        }
+        
+        /* NEW: Collapsible metadata with smooth animation */
+        .task-meta {
+            display: flex;
+            gap: 15px;
+            margin-left: 30px;
+            font-size: 13px;
+            flex-wrap: wrap;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+        }
+        
+        .task-meta.expanded {
+            max-height: 200px;
+            opacity: 1;
+            margin-top: 10px;
         }
         
         /* NEW: Edit mode styling */
@@ -604,6 +643,9 @@
         // NEW: Track which task is being edited
         let editingTaskId = null;
         
+        // NEW: Track which tasks have expanded details
+        let expandedTasks = new Set();
+        
         // Load tasks from browser storage when page loads
         function loadTasks() {
             const savedTasks = localStorage.getItem('tasks');
@@ -725,6 +767,16 @@
             renderTasks();
         }
         
+        // NEW: Toggle task details visibility
+        function toggleTaskDetails(id) {
+            if (expandedTasks.has(id)) {
+                expandedTasks.delete(id);  // Collapse if already expanded
+            } else {
+                expandedTasks.add(id);     // Expand if collapsed
+            }
+            renderTasks();
+        }
+        
         // Filter tasks by category
         function filterTasks(category) {
             currentFilter = category;
@@ -825,7 +877,7 @@
                                     <button class="cancel-btn" onclick="cancelEdit()">Cancel</button>
                                 </div>
                             </div>
-                            <div class="task-meta" style="display: flex; gap: 10px; align-items: flex-start; margin-left: 0; flex-wrap: wrap; width: 100%;">
+                            <div class="task-meta expanded" style="display: flex; gap: 10px; align-items: flex-start; margin-left: 0; flex-wrap: wrap; width: 100%; margin-top: 10px; max-height: none; opacity: 1;">
                                 <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 120px;">
                                     <label style="font-size: 10px; color: #999;">Category</label>
                                     <select id="edit-category-${task.id}" style="padding: 8px 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 13px; width: 100%;">
@@ -859,6 +911,8 @@
                 }
                 
                 // Normal display mode
+                const isExpanded = expandedTasks.has(task.id);
+                
                 return `
                     <li class="task-item ${task.completed ? 'completed' : ''} ${overdueClass}" 
                         data-category="${task.category}"
@@ -870,13 +924,16 @@
                                 ${task.completed ? 'checked' : ''}
                                 onchange="toggleTask(${task.id})"
                             >
-                            <span class="task-text">${task.text}</span>
+                            <span class="task-text" onclick="toggleTaskDetails(${task.id})">
+                                <span class="expand-indicator ${isExpanded ? 'expanded' : ''}">▶</span>
+                                ${task.text}
+                            </span>
                             <div class="action-buttons">
                                 <button class="edit-btn" onclick="editTask(${task.id})">Edit</button>
                                 <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
                             </div>
                         </div>
-                        <div class="task-meta">
+                        <div class="task-meta ${isExpanded ? 'expanded' : ''}">
                             <span class="task-category category-${task.category}">${task.category}</span>
                             <span class="priority-badge priority-${task.priority || 'medium'}">${task.priority || 'medium'}</span>
                             ${task.dueDate ? `
